@@ -1,0 +1,44 @@
+name: Build v2rayA 2.5.16 for R3G (mipsel_24kc)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build mipsel_24kc ipk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Build packages
+        uses: immortalwrt/gh-action-sdk@v7
+        env:
+          ARCH: mipsel_24kc-openwrt-24.10
+          FEEDNAME: v2raya_ci
+          PACKAGES: ca-certificates v2fly-geodata v2ray-core xray-core v2raya luci-app-v2raya
+          NO_REFRESH_CHECK: 1
+          INDEX: 1
+          V: s
+
+      - name: Collect ipk files
+        run: |
+          mkdir -p artifacts
+          cp bin/packages/mipsel_24kc/v2raya_ci/*.ipk artifacts/ 2>/dev/null || true
+          ls -lh artifacts/
+
+      - name: Upload ipk artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: v2raya-2.5.16-mipsel_24kc
+          path: artifacts/*.ipk
+          if-no-files-found: error
+
+      - name: Upload build logs
+        uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: build-logs
+          path: logs/
+          if-no-files-found: ignore
