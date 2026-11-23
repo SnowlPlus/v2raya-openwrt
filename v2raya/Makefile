@@ -58,8 +58,12 @@ define Download/v2raya-web
   HASH:=17d7948a48f78485ad6ca43531b0e6edcfc49307ce6e2bd46d3ee79950185456
 endef
 
-GO_PKG_TARGET_VARS:=$(filter-out CGO_ENABLED=%,$(GO_PKG_TARGET_VARS))
-CGO_ENABLED=0
+# v2rayA 2.5.16 uses SQLite. On mips/mipsle the pure-Go driver (modernc.org/sqlite)
+# does NOT build (modernc.org/libc has no 32-bit mipsle support), so v2rayA ships a
+# CGO-backed driver (mattn/go-sqlite3) for mips. Therefore CGO must stay ENABLED.
+# OpenWrt golang-package.mk already sets CGO_ENABLED=1 + CC=$(TARGET_CC) in
+# GO_PKG_TARGET_VARS -- do NOT filter CGO_ENABLED out like the old 2.2.74 recipe did.
+# Only strip the external-linkmode flag (no need for it here).
 GO_PKG_DEFAULT_LDFLAGS:=$(filter-out -linkmode external,$(GO_PKG_DEFAULT_LDFLAGS))
 
 # v2rayA 2.5.16 requires Go 1.26; golang-package.mk forces GOTOOLCHAIN=local,
@@ -73,13 +77,6 @@ define Build/Prepare
 		mkdir -p $(PKG_BUILD_DIR)/server/router/web ; \
 		gzip -dc $(DL_DIR)/$(WEB_FILE) | $(HOST_TAR) -C $(PKG_BUILD_DIR)/server/router/web $(TAR_OPTIONS) ; \
 	)
-	# v2rayA 2.5.16 ships an empty sqlite driver for mips+cgo=0, which makes the
-	# binary exit at startup ("SQLite driver is unavailable"). OpenWrt Go builds
-	# with CGO_ENABLED=0, so force the pure-Go modernc.org/sqlite driver instead:
-	# drop both mipsle-specific driver files and widen the default driver's build tag.
-	-mv $(PKG_BUILD_DIR)/db/sqlite_driver_mipsle_nocgo.go $(PKG_BUILD_DIR)/db/sqlite_driver_mipsle_nocgo.go.disabled
-	-mv $(PKG_BUILD_DIR)/db/sqlite_driver_mipsle_cgo.go $(PKG_BUILD_DIR)/db/sqlite_driver_mipsle_cgo.go.disabled
-	sed -i 's|^//go:build .*|//go:build linux|' $(PKG_BUILD_DIR)/db/sqlite_driver_default.go
 endef
 
 define Package/v2raya/install
