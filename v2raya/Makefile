@@ -37,7 +37,7 @@ define Package/v2raya
   SECTION:=net
   CATEGORY:=Network
   SUBMENU:=Web Servers/Proxies
-  DEPENDS:=$(GO_ARCH_DEPENDS) +ca-bundle
+  DEPENDS:=$(GO_ARCH_DEPENDS) +ca-bundle +v2raya-core
   URL:=https://v2raya.org
 endef
 
@@ -89,6 +89,9 @@ define Package/v2raya/install
 
 	$(INSTALL_DIR) $(1)/etc/init.d/
 	$(INSTALL_BIN) $(CURDIR)/files/v2raya.init $(1)/etc/init.d/v2raya
+	# Point v2rayA at OpenWrt's geodata dir so it does not try to download
+	# geoip.dat/geosite.dat on first start (v2fly-geodata installs here).
+	sed -i 's|\(append_env "config" "/etc/v2raya"\)|\1\n\tappend_env "v2ray_assetsdir" "/usr/share/v2ray"|' $(1)/etc/init.d/v2raya
 endef
 
 $(eval $(call Download,v2raya-web))
