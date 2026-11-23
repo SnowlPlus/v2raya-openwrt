@@ -73,6 +73,13 @@ define Build/Prepare
 		mkdir -p $(PKG_BUILD_DIR)/server/router/web ; \
 		gzip -dc $(DL_DIR)/$(WEB_FILE) | $(HOST_TAR) -C $(PKG_BUILD_DIR)/server/router/web $(TAR_OPTIONS) ; \
 	)
+	# v2rayA 2.5.16 ships an empty sqlite driver for mips+cgo=0, which makes the
+	# binary exit at startup ("SQLite driver is unavailable"). OpenWrt Go builds
+	# with CGO_ENABLED=0, so force the pure-Go modernc.org/sqlite driver instead:
+	# drop both mipsle-specific driver files and widen the default driver's build tag.
+	-mv $(PKG_BUILD_DIR)/db/sqlite_driver_mipsle_nocgo.go $(PKG_BUILD_DIR)/db/sqlite_driver_mipsle_nocgo.go.disabled
+	-mv $(PKG_BUILD_DIR)/db/sqlite_driver_mipsle_cgo.go $(PKG_BUILD_DIR)/db/sqlite_driver_mipsle_cgo.go.disabled
+	sed -i 's|^//go:build .*|//go:build linux|' $(PKG_BUILD_DIR)/db/sqlite_driver_default.go
 endef
 
 define Package/v2raya/install
