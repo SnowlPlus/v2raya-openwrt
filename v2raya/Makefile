@@ -5,17 +5,17 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=v2rayA
-PKG_VERSION:=2.2.7.4
+PKG_VERSION:=2.5.16
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://codeload.github.com/v2rayA/v2rayA/tar.gz/v$(PKG_VERSION)?
-PKG_HASH:=801a5488493cef8c2603d596e5982d226c07ad8f4a2969d942922be79169ec29
-PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)/service
+PKG_HASH:=07813e4bb244363f6e989c9268ce86a6f2b1dc724dc20a2097a607800b83d9da
 
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)/service
 PKG_LICENSE:=AGPL-3.0-only
 PKG_LICENSE_FILES:=LICENSE
-PKG_MAINTAINER:=Tianling Shen <cnsztl@immortalwrt.org>
+PKG_MAINTAINER:=Tianling Shen
 
 PKG_BUILD_DEPENDS:=golang/host
 PKG_BUILD_PARALLEL:=1
@@ -42,8 +42,7 @@ define Package/v2raya
 endef
 
 define Package/v2raya/description
-  v2rayA is a V2Ray Linux client supporting global transparent proxy,
-  compatible with SS, SSR, Trojan(trojan-go), PingTunnel protocols.
+	v2rayA is a V2Ray Linux client supporting global transparent proxy, compatible with SS, SSR, Trojan, PingTunnel protocols.
 endef
 
 define Package/v2raya/conffiles
@@ -53,18 +52,23 @@ endef
 
 WEB_FILE:=$(PKG_NAME)-web-$(PKG_VERSION).tar.gz
 define Download/v2raya-web
-	URL:=https://github.com/v2rayA/v2rayA/releases/download/v$(PKG_VERSION)/
-	URL_FILE:=web.tar.gz
-	FILE:=$(WEB_FILE)
-	HASH:=985b083a75b7b34ea9c5151cbc096f6f44fa369a807fea85b435fed5229dae65
+  URL:=https://github.com/v2rayA/v2rayA/releases/download/v$(PKG_VERSION)/
+  URL_FILE:=web.tar.gz
+  FILE:=$(WEB_FILE)
+  HASH:=17d7948a48f78485ad6ca43531b0e6edcfc49307ce6e2bd46d3ee79950185456
 endef
 
-GO_PKG_TARGET_VARS:=$(filter-out CGO_ENABLED=%,$(GO_PKG_TARGET_VARS)) CGO_ENABLED=0
+GO_PKG_TARGET_VARS:=$(filter-out CGO_ENABLED=%,$(GO_PKG_TARGET_VARS))
+CGO_ENABLED=0
 GO_PKG_DEFAULT_LDFLAGS:=$(filter-out -linkmode external,$(GO_PKG_DEFAULT_LDFLAGS))
+
+# v2rayA 2.5.16 requires Go 1.26; golang-package.mk forces GOTOOLCHAIN=local,
+# strip it and explicitly allow auto-download of the matching toolchain
+GO_PKG_BUILD_VARS:=$(filter-out GOTOOLCHAIN=%,$(GO_PKG_BUILD_VARS))
+GO_PKG_BUILD_VARS+=GOTOOLCHAIN=auto
 
 define Build/Prepare
 	$(call Build/Prepare/Default)
-
 	( \
 		mkdir -p $(PKG_BUILD_DIR)/server/router/web ; \
 		gzip -dc $(DL_DIR)/$(WEB_FILE) | $(HOST_TAR) -C $(PKG_BUILD_DIR)/server/router/web $(TAR_OPTIONS) ; \
@@ -78,6 +82,7 @@ define Package/v2raya/install
 
 	$(INSTALL_DIR) $(1)/etc/config/
 	$(INSTALL_CONF) $(CURDIR)/files/v2raya.config $(1)/etc/config/v2raya
+
 	$(INSTALL_DIR) $(1)/etc/init.d/
 	$(INSTALL_BIN) $(CURDIR)/files/v2raya.init $(1)/etc/init.d/v2raya
 endef
